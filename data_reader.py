@@ -55,8 +55,8 @@ def csv_2_mysql():
     cursor.close()
     conn.close()
 
-
-def get_power_bins(bin_count):
+# 根据动力分类
+def get_power_bins(bin_count=5):
     global df
     # 从Power字段中移除 " bhp" 后缀，并将其转换为数值
     df['Power'] = pd.to_numeric(df['Power'].str.replace(' bhp', ''), errors='coerce')
@@ -68,21 +68,84 @@ def get_power_bins(bin_count):
     min_power = df['Power'].min()
     max_power = df['Power'].max()
     bins = np.linspace(min_power, max_power, bin_count+1)
+    # 使用numpy的round函数将bins四舍五入到最近的整数
     bins = np.round(bins)
+
+    # 将bins乘以5然后除以5，确保所有的bins都是5的倍数
+    bins = np.round(bins / 5) * 5
     # 利用pd.cut函数，将Power字段划分为多个区间
     df['PowerBin'] = pd.cut(df['Power'], bins)
 
     # 获取每个区间的数量
     power_bin_counts = df['PowerBin'].value_counts().sort_index()
 
+
+    # 将区间的数量转换为字典形式
+    power_bin_counts_dict = {str(interval): count for interval, count in power_bin_counts.items()}
+    # 创建新的figure和axes
+    fig, ax = plt.subplots()
+
+    # 获取区间和数量
+    bins = power_bin_counts_dict.keys()
+    counts = power_bin_counts_dict.values()
+
+    # 创建条形图
+    bars = ax.bar(bins, counts)
+
+    # 在每个条形的顶部添加数量标签
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2.0, yval, int(yval), ha='center', va='bottom', fontsize=8)
+
+    # 设置标题和标签
+    ax.set_title('Car Power Distribution')
+    ax.set_xlabel('Power Range')
+    ax.set_ylabel('Count')
+
+    # 设置x轴标签的字体大小
+    plt.xticks(fontsize=8)
+    # 保存图形为图片
+    plt.savefig('Power', dpi=300, bbox_inches='tight')
+    # 显示图形
+    plt.show()
     # 返回每个区间的数量
-    return power_bin_counts
-# 指定要划分的区间数量
-bin_count = 5
+    return power_bin_counts_dict
 
-# 获取每个Power区间的数量
-power_bin_counts = get_power_bins(bin_count)
+# 根据年份分类
+def get_year_bins():
+    global df
+    # 从Power字段中移除 " bhp" 后缀，并将其转换为数值
+    df['Year'] = pd.to_numeric(df['Year'])
 
-# 打印每个区间的数量
-print(power_bin_counts)
+    # 移除Power字段中为NaN的行
+    df = df.dropna(subset=['Year'])
+    year_counts = df['Year'].value_counts().sort_index()
+    # 创建新的figure和axes
+    fig, ax = plt.subplots()
+
+    # 获取年份和数量
+    years = year_counts.index
+    counts = year_counts.values
+
+    # 创建折线图
+    ax.plot(years, counts)
+
+    # 设置标题和标签
+    ax.set_title('Car Year Distribution')
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Count')
+    # 为每个数据点添加注解
+    for i, count in enumerate(counts):
+        ax.annotate(count, (years[i], count), textcoords="offset points", xytext=(0, 5), ha='center',fontsize=8)
+
+    # 保存图形为图片
+    plt.savefig('Year', dpi=300, bbox_inches='tight')
+    # 设置x轴的标签与数据点一一对应
+    ax.set_xticks(years)
+    ax.set_xticklabels(years, rotation=45)
+    # 显示图形
+    plt.show()
+
+
+get_year_bins()
 
