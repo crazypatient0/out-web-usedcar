@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
-import pymysql
+# import pymysql
 import matplotlib.pyplot as plt
-
+from pymongo import MongoClient
 
 # 读取CSV文件
 df = pd.read_csv('data.csv')
@@ -147,5 +147,34 @@ def get_year_bins():
     plt.show()
 
 
-get_year_bins()
 
+def csv_2_mongodb():
+    # 连接到 MongoDB
+    client = MongoClient('mongodb://localhost:27017')
+
+    # 选择数据库和集合
+    db = client['outwork']
+    collection = db['usedcar']
+
+    # 遍历DataFrame，将数据插入到 MongoDB
+    for row in df.itertuples():
+        car_data = {
+            'Name': row.Name,
+            'Location': row.Location,
+            'Year': row.Year,
+            'Kilometers': row.Kilometers_Driven,
+            'Fuel_Type': row.Fuel_Type,
+            'Transmission': row.Transmission,
+            'Mileage': row.Mileage,
+            'Engine': row.Engine,
+            'Power': row.Power,
+            'Seats': row.Seats,
+            'Price': row.Price,
+            'Brand': row.Brand
+        }
+        collection.insert_one(car_data)
+
+    # 关闭连接
+    client.close()
+
+csv_2_mongodb()
