@@ -81,22 +81,72 @@ def search():
     if transmission:
         query['Transmission'] = transmission
     if price:
-        query['Price'] = {'$gt': price}
+        query['Price'] = {'$lt': round((float(price)/1000),2)}
     if fuel:
-        query['Fuel'] = {'$in': fuel}
+        query['Fuel_Type'] = {'$in': fuel}
 
+    # print(query)
     # 查询数据库
     if query:
+        # print(1)
         results = collection.find(query, {'_id': 0})
     else:
+        # print(2)
         results = collection.find({}, {'_id': 0})
 
     # 将查询结果转换为列表形式
     search_results = list(results)
 
+    # print(type(search_results[0]))
     # 返回查询结果
     return jsonify({'results': search_results})
 
+
+@app.route('/car/<int:id>', methods=['GET'])
+def get_car(id):
+    collection = db['usedcar']
+    car = collection.find_one({"id": id}, {"_id": 0})  # Assuming 'cars' is the collection name
+    # print(type(car),car)
+    if car:
+        # If it does, return it
+        return jsonify({'code':200, 'data': car})
+    else:
+        # If it doesn't, return a 404 error
+        return jsonify({'code':404, 'data':''})
+
+@app.route('/car/<int:id>', methods=['PUT'])
+def update_car(id):
+    collection = db['usedcar']
+    car = collection.find_one({"id": id})
+
+    if car:
+        price = request.json.get('Price', None)
+        if price is not None:
+            collection.update_one({"id": id}, {"$set": {"Price": price}})
+            return jsonify({'code':200, 'message': 'Car price updated successfully.'})
+    else:
+        return jsonify({'code':404, 'message': 'Car not found.'})
+
+
+@app.route('/car/<int:id>', methods=['DELETE'])
+def delete_car(id):
+    collection = db['usedcar']  # Assuming 'usedcar' is the collection name
+    result = collection.delete_one({"id": id})
+
+    if result.deleted_count > 0:
+        return jsonify({"code": 200, "message": "Car deleted successfully."})
+    else:
+        return jsonify({"code": 404, "message": "Car not found."})
+
+
+@app.route('/search2', methods=['POST'])
+def search2():
+    collection = db['usedcar']
+    collection.create_index([('$**', 'text')], name='searchIndex')
+    search_text = request.get_json()['searchText']
+    query = {'$text': {'$search': search_text}}
+    results = list(collection.find(query, {'_id': 0}))
+    return jsonify({"code": 200, "data": results})
 
 if __name__ == '__main__':
     create_table()

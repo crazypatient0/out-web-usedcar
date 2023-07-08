@@ -157,8 +157,9 @@ def csv_2_mongodb():
     collection = db['usedcar']
 
     # 遍历DataFrame，将数据插入到 MongoDB
-    for row in df.itertuples():
+    for i, row in enumerate(df.itertuples(), start=1):
         car_data = {
+            'id': i,
             'Name': row.Name,
             'Location': row.Location,
             'Year': row.Year,
@@ -177,4 +178,37 @@ def csv_2_mongodb():
     # 关闭连接
     client.close()
 
-csv_2_mongodb()
+# csv_2_mongodb()
+
+
+def brand_distribution():
+    brand_counts = df['Brand'].value_counts()
+    total_count = brand_counts.sum()
+
+    # 获取大于等于1%的品牌
+    main_brands = brand_counts[brand_counts / total_count >= 0.01]
+
+    # 计算小于1%的品牌数量之和
+    other_count = brand_counts[brand_counts / total_count < 0.01].sum()
+
+    # 将小于1%的品牌归类为 "Other"
+    main_brands['Other'] = other_count
+
+    # 获取品牌和数量
+    brands = main_brands.index
+    counts = main_brands.values
+
+    # 创建饼图
+    fig, ax = plt.subplots()
+    ax.pie(counts, labels=brands, autopct='%1.1f%%')
+
+    # 设置标题
+    ax.set_title('Brand Distribution')
+    # 保存图形为图片
+    plt.savefig('Brand', dpi=300, bbox_inches='tight')
+    # 显示图形
+    plt.show()
+    brand_dict = {brand: count for brand, count in zip(brands, counts)}
+    print(brand_dict)
+
+brand_distribution()
